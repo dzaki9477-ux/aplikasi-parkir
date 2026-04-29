@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartPark — Sistem Parkir</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary:    #ffffff;
+      --bg-secondary:  #f5f5f0;
+      --bg-tertiary:   #eeede8;
+      --text-primary:  #1a1a1a;
+      --text-secondary:#6b7280;
+      --border-light:  rgba(0,0,0,0.08);
+      --border-mid:    rgba(0,0,0,0.15);
+      --border-strong: rgba(0,0,0,0.25);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --font-sans: 'Syne', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary:    #1c1c1e;
+        --bg-secondary:  #2c2c2e;
+        --bg-tertiary:   #111113;
+        --text-primary:  #f5f5f0;
+        --text-secondary:#9ca3af;
+        --border-light:  rgba(255,255,255,0.08);
+        --border-mid:    rgba(255,255,255,0.15);
+        --border-strong: rgba(255,255,255,0.25);
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--bg-primary);
+      border-bottom: 0.5px solid var(--border-light);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: #1a1a2e;
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text  { font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; }
+    .logo-sub   { font-size: 10px; color: var(--text-secondary); letter-spacing: 1.2px; text-transform: uppercase; }
+
+    .header-stats { display: flex; gap: 28px; }
+
+    .hstat { text-align: center; }
+    .hstat-val {
+      font-family: var(--font-mono);
+      font-size: 22px; font-weight: 700;
+      color: var(--text-primary);
+    }
+    .hstat-val.green  { color: #10b981; }
+    .hstat-val.red    { color: #ef4444; }
+    .hstat-val.amber  { color: #f59e0b; }
+    .hstat-lbl { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+
+    .clock { font-family: var(--font-mono); font-size: 13px; color: var(--text-secondary); }
+
+    /* ===== LAYOUT ===== */
+    .main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: calc(100vh - 68px);
+    }
+
+    .sidebar {
+      background: var(--bg-primary);
+      border-right: 0.5px solid var(--border-light);
+      padding: 20px;
+      overflow-y: auto;
+      max-height: calc(100vh - 68px);
+      position: sticky;
+      top: 68px;
+    }
+
+    .content {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    /* ===== TABS ===== */
+    .tab-row { display: flex; gap: 4px; margin-bottom: 16px; }
+
+    .tab-btn {
+      padding: 7px 16px;
+      border-radius: var(--radius-md);
+      background: transparent;
+      border: 0.5px solid var(--border-light);
+      font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+      color: var(--text-secondary); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active { background: #1a1a2e; color: #fff; border-color: transparent; }
+    .tab-btn:hover:not(.active) { border-color: var(--border-mid); color: var(--text-primary); }
+
+    /* ===== FORM ===== */
+    .section-title {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+
+    .form-label {
+      font-size: 12px; color: var(--text-secondary);
+      margin-bottom: 5px; display: block;
+    }
+
+    .form-input,
+    .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border-light);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: var(--text-primary);
+      transition: border-color 0.2s;
+    }
+    .form-input { font-family: var(--font-mono); letter-spacing: 1px; }
+    .form-select { font-family: var(--font-sans); }
+    .form-input:focus,
+    .form-select:focus { outline: none; border-color: var(--border-strong); }
+
+    /* ===== BUTTONS ===== */
+    .btn-primary {
+      width: 100%;
+      padding: 11px;
+      background: #1a1a2e;
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn-primary:hover  { opacity: 0.85; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary.green  { background: #059669; }
+    .btn-primary.red    { background: #dc2626; }
+
+    .btn-ghost {
+      flex: 1; padding: 10px;
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border-light);
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+      color: var(--text-primary); cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-ghost:hover { background: var(--bg-primary); }
+
+    /* ===== DIVIDER ===== */
+    .divider { height: 0.5px; background: var(--border-light); margin: 18px 0; }
+
+    /* ===== OCCUPIED CARDS ===== */
+    .occupied-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .slot-card {
+      background: var(--bg-secondary);
+      border: 0.5px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 12px; cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .slot-card:hover { border-color: var(--border-mid); }
+    .slot-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .slot-card-id { font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+    .slot-card-plate {
+      font-family: var(--font-mono); font-size: 10px;
+      background: #1a1a2e; color: #fff;
+      padding: 3px 8px; border-radius: 4px; letter-spacing: 1px;
+    }
+    .slot-card-info { font-size: 11px; color: var(--text-secondary); display: flex; gap: 12px; }
+    .slot-card-info .fee { color: #f59e0b; font-weight: 600; }
+
+    .no-slots { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px; }
+
+    /* ===== PARKING MAP ===== */
+    .parking-area {
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      border: 0.5px solid var(--border-light);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .zone-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .zone-name   { font-size: 15px; font-weight: 700; }
+    .zone-count  { font-size: 12px; color: var(--text-secondary); }
+
+    .occupancy-row { margin-bottom: 14px; }
+    .occ-labels {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;
+    }
+    .occupancy-bar  { height: 5px; background: var(--border-light); border-radius: 3px; overflow: hidden; }
+    .occupancy-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+    .parking-grid { display: grid; gap: 8px; margin-bottom: 12px; }
+
+    .road-label {
+      text-align: center; font-size: 9px; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--text-secondary);
+      padding: 7px 0;
+      border-top: 1px dashed var(--border-light);
+      border-bottom: 1px dashed var(--border-light);
+      margin: 6px 0 14px;
+    }
+
+    .parking-slot {
+      aspect-ratio: 1.6;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid transparent;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: transform 0.18s, box-shadow 0.18s;
+      min-height: 52px;
+    }
+    .parking-slot:hover { transform: scale(1.07); z-index: 2; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+    .parking-slot.available { background: #d1fae5; border-color: #6ee7b7; }
+    .parking-slot.occupied  { background: #fee2e2; border-color: #fca5a5; }
+    .parking-slot.reserved  { background: #fef3c7; border-color: #fcd34d; }
+    .parking-slot.disabled  { background: #e0e7ff; border-color: #a5b4fc; }
+
+    @media (prefers-color-scheme: dark) {
+      .parking-slot.available { background: #064e3b; border-color: #065f46; }
+      .parking-slot.occupied  { background: #450a0a; border-color: #7f1d1d; }
+      .parking-slot.reserved  { background: #451a03; border-color: #78350f; }
+      .parking-slot.disabled  { background: #1e1b4b; border-color: #3730a3; }
+    }
+
+    .slot-icon  { font-size: 14px; margin-bottom: 2px; }
+    .slot-id    { font-family: var(--font-mono); font-size: 9px; font-weight: 700; }
+    .slot-plate { font-family: var(--font-mono); font-size: 7px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ===== LEGEND ===== */
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .ld-avail { background: #6ee7b7; }
+    .ld-occ   { background: #fca5a5; }
+    .ld-res   { background: #fcd34d; }
+    .ld-dis   { background: #a5b4fc; }
+
+    /* ===== STATS ===== */
+    .stats-card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      border: 0.5px solid var(--border-light);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+
+    .metric-box {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 14px; text-align: center;
+    }
+    .metric-num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; }
+    .metric-num.green { color: #10b981; }
+    .metric-num.amber { color: #f59e0b; }
+    .metric-lbl { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
+
+    /* ===== HISTORY TABLE ===== */
+    .history-card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-lg);
+      border: 0.5px solid var(--border-light);
+      padding: 20px;
+    }
+
+    .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .history-table th {
+      text-align: left; color: var(--text-secondary); font-weight: 500;
+      padding: 8px 10px; border-bottom: 0.5px solid var(--border-light);
+      font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px;
+    }
+    .history-table td {
+      padding: 10px;
+      border-bottom: 0.5px solid var(--border-light);
+      color: var(--text-primary); vertical-align: middle;
+    }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table tr:hover td { background: var(--bg-secondary); }
+
+    .badge {
+      display: inline-block; padding: 3px 8px;
+      border-radius: 4px; font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .badge.in  { background: #d1fae5; color: #065f46; }
+    .badge.out { background: #f3f4f6; color: #6b7280; }
+
+    /* ===== RECEIPT MODAL ===== */
+    .receipt-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .receipt-overlay.show { opacity: 1; pointer-events: all; }
+
+    .receipt-box {
+      background: var(--bg-primary);
+      border-radius: var(--radius-xl);
+      border: 0.5px solid var(--border-light);
+      padding: 28px;
+      width: 340px;
+      max-width: 92vw;
+      transform: translateY(20px);
+      transition: transform 0.25s;
+    }
+    .receipt-overlay.show .receipt-box { transform: translateY(0); }
+
+    .receipt-title {
+      font-size: 18px; font-weight: 800;
+      text-align: center; margin-bottom: 20px;
+    }
+    .receipt-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px; padding: 9px 0;
+      border-bottom: 0.5px solid var(--border-light);
+    }
+    .receipt-row:last-of-type { border-bottom: none; }
+    .receipt-key { color: var(--text-secondary); }
+    .receipt-val { font-family: var(--font-mono); font-weight: 700; }
+    .receipt-total { font-size: 20px; color: #059669; }
+
+    .receipt-btns { display: flex; gap: 10px; margin-top: 20px; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1a1a2e; color: #fff;
+      padding: 12px 20px;
+      border-radius: var(--radius-lg);
+      font-size: 13px; font-weight: 500;
+      z-index: 200;
+      opacity: 0; transform: translateY(12px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+    .toast.show   { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #059669; }
+    .toast.error   { background: #dc2626; }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-icon">🅿</div>
+    <div>
+      <div class="logo-text">SmartPark</div>
+      <div class="logo-sub">Parking Management System</div>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="hstat">
+      <div class="hstat-val green" id="h-available">0</div>
+      <div class="hstat-lbl">Tersedia</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-val red" id="h-occupied">0</div>
+      <div class="hstat-lbl">Terisi</div>
+    </div>
+    <div class="hstat">
+      <div class="hstat-val amber" id="h-revenue">Rp0</div>
+      <div class="hstat-lbl">Pendapatan</div>
+    </div>
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+</header>
+
+<!-- ===== MAIN LAYOUT ===== -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="setSideTab('checkin')">Check-in</button>
+      <button class="tab-btn" onclick="setSideTab('checkout')">Check-out</button>
+    </div>
+
+    <!-- CHECK-IN FORM -->
+    <div id="tab-checkin">
+      <div class="section-title">Data Kendaraan</div>
+
+      <div class="form-group">
+        <label class="form-label">Nomor Plat</label>
+        <input class="form-input" id="plate-in" placeholder="B 1234 ABC"
+               oninput="this.value = this.value.toUpperCase()" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Jenis Kendaraan</label>
+        <select class="form-select" id="vehicle-type">
+          <option value="motor">Motor — Rp2.000/jam</option>
+          <option value="mobil" selected>Mobil — Rp5.000/jam</option>
+          <option value="bus">Bus / Truk — Rp10.000/jam</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Zona Parkir</label>
+        <select class="form-select" id="zone-select" onchange="updateSlotOptions()">
+          <option value="A">Zona A — Lantai 1</option>
+          <option value="B">Zona B — Lantai 1</option>
+          <option value="C">Zona C — Lantai 2</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Slot Spesifik (opsional)</label>
+        <select class="form-select" id="slot-select">
+          <option value="">Auto-assign slot kosong</option>
+        </select>
+      </div>
+
+      <button class="btn-primary green" onclick="doCheckin()">✓ Check-in Kendaraan</button>
+    </div>
+
+    <!-- CHECK-OUT FORM -->
+    <div id="tab-checkout" style="display:none">
+      <div class="section-title">Cari Kendaraan</div>
+
+      <div class="form-group">
+        <label class="form-label">Nomor Plat</label>
+        <input class="form-input" id="plate-out" placeholder="B 1234 ABC"
+               oninput="this.value = this.value.toUpperCase()" />
+      </div>
+      <button class="btn-primary" style="background:#1a1a2e; margin-bottom:12px"
+              onclick="searchVehicle()">Cari Kendaraan</button>
+      <div id="checkout-result"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ACTIVE VEHICLES -->
+    <div class="section-title">
+      Kendaraan Aktif (<span id="occ-count">0</span>)
+    </div>
+    <div class="occupied-list" id="occupied-list">
+      <div class="no-slots">Belum ada kendaraan</div>
+    </div>
+  </aside>
+
+  <!-- CONTENT AREA -->
+  <main class="content">
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="setMainTab('peta')">🗺 Peta Parkir</button>
+      <button class="tab-btn" onclick="setMainTab('statistik')">📊 Statistik</button>
+      <button class="tab-btn" onclick="setMainTab('riwayat')">📋 Riwayat</button>
+    </div>
+
+    <!-- TAB: PETA -->
+    <div id="tab-peta">
+      <div id="zones-container"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot ld-avail"></div>Tersedia</div>
+        <div class="legend-item"><div class="legend-dot ld-occ"></div>Terisi</div>
+        <div class="legend-item"><div class="legend-dot ld-res"></div>Reserved</div>
+        <div class="legend-item"><div class="legend-dot ld-dis"></div>Difabel</div>
+      </div>
+    </div>
+
+    <!-- TAB: STATISTIK -->
+    <div id="tab-statistik" style="display:none">
+      <div class="stats-card">
+        <div class="section-title" style="margin-bottom:16px">Ringkasan Hari Ini</div>
+        <div class="metrics-row">
+          <div class="metric-box">
+            <div class="metric-num green" id="m-checkin">0</div>
+            <div class="metric-lbl">Total Masuk</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-num" id="m-checkout">0</div>
+            <div class="metric-lbl">Total Keluar</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-num amber" id="m-revenue">Rp0</div>
+            <div class="metric-lbl">Pendapatan</div>
+          </div>
+        </div>
+        <div id="zone-stats"></div>
+      </div>
+    </div>
+
+    <!-- TAB: RIWAYAT -->
+    <div id="tab-riwayat" style="display:none">
+      <div class="history-card">
+        <div class="section-title" style="margin-bottom:16px">Riwayat Transaksi</div>
+        <div style="overflow-x:auto">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Plat</th>
+                <th>Jenis</th>
+                <th>Slot</th>
+                <th>Masuk</th>
+                <th>Keluar</th>
+                <th>Durasi</th>
+                <th>Biaya</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr>
+                <td colspan="8"
+                    style="text-align:center; color:var(--text-secondary); padding:28px">
+                  Belum ada riwayat transaksi
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== RECEIPT MODAL ===== -->
+<div class="receipt-overlay" id="receipt-overlay" onclick="if(event.target===this) closeReceipt()">
+  <div class="receipt-box" id="receipt-box"></div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ======================================================
+     KONSTANTA & DATA
+  ====================================================== */
+  const TARIFF       = { motor: 2000, mobil: 5000, bus: 10000 };
+  const TARIFF_LABEL = { motor: 'Motor', mobil: 'Mobil', bus: 'Bus/Truk' };
+
+  // Inisialisasi zona parkir
+  const zones = {
+    A: { name: 'Zona A — Lantai 1', cols: 5,  slots: [] },
+    B: { name: 'Zona B — Lantai 1', cols: 4,  slots: [] },
+    C: { name: 'Zona C — Lantai 2', cols: 5,  slots: [] },
+  };
+
+  // Buat slot parkir
+  function makeSlots(zoneKey, count) {
+    const s = [];
+    for (let i = 1; i <= count; i++) {
+      const id   = zoneKey + String(i).padStart(2, '0');
+      let   type = 'available';
+      if (i === 1)     type = 'disabled';   // slot difabel di awal
+      if (i === count) type = 'reserved';   // slot reserved di akhir
+      s.push({ id, type, plate: null, vehicleType: null, checkinTime: null });
+    }
+    return s;
+  }
+
+  zones.A.slots = makeSlots('A', 12);
+  zones.B.slots = makeSlots('B', 10);
+  zones.C.slots = makeSlots('C', 12);
+
+  // State global
+  let history        = [];
+  let totalRevenue   = 0;
+  let totalCheckin   = 0;
+  let totalCheckout  = 0;
+
+  /* ======================================================
+     HELPERS
+  ====================================================== */
+  function allSlots()      { return [...zones.A.slots, ...zones.B.slots, ...zones.C.slots]; }
+  function getSlot(id)     { return allSlots().find(s => s.id === id); }
+
+  function fmtTime(d)      { return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); }
+  function fmtDate(d)      { return d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' }); }
+  function fmtRp(n)        { return 'Rp' + n.toLocaleString('id-ID'); }
+
+  function fmtDuration(ms) {
+    const mins = Math.floor(ms / 60000);
+    const hrs  = Math.floor(mins / 60);
+    const m    = mins % 60;
+    return hrs > 0 ? `${hrs}j ${m}m` : `${m}m`;
+  }
+
+  function calcFee(ms, type) {
+    const hrs = Math.max(1, Math.ceil(ms / 3600000));
+    return hrs * TARIFF[type];
+  }
+
+  /* ======================================================
+     TOAST NOTIFIKASI
+  ====================================================== */
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className   = `toast show ${type}`;
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+  }
+
+  /* ======================================================
+     TAB NAVIGATION
+  ====================================================== */
+  function setSideTab(tab) {
+    document.getElementById('tab-checkin').style.display  = tab === 'checkin'  ? '' : 'none';
+    document.getElementById('tab-checkout').style.display = tab === 'checkout' ? '' : 'none';
+    document.querySelectorAll('.sidebar .tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', (i === 0 && tab === 'checkin') || (i === 1 && tab === 'checkout'));
+    });
+  }
+
+  function setMainTab(tab) {
+    ['peta', 'statistik', 'riwayat'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+    });
+    document.querySelectorAll('.content .tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', ['peta', 'statistik', 'riwayat'][i] === tab);
+    });
+    if (tab === 'statistik') renderStats();
+    if (tab === 'riwayat')   renderHistory();
+  }
+
+  /* ======================================================
+     UPDATE SLOT OPTIONS (FORM)
+  ====================================================== */
+  function updateSlotOptions() {
+    const zone = document.getElementById('zone-select').value;
+    const sel  = document.getElementById('slot-select');
+    sel.innerHTML = '<option value="">Auto-assign slot kosong</option>';
+    zones[zone].slots
+      .filter(s => s.type === 'available')
+      .forEach(s => {
+        sel.innerHTML += `<option value="${s.id}">${s.id}</option>`;
+      });
+  }
+
+  /* ======================================================
+     CHECK-IN
+  ====================================================== */
+  function doCheckin() {
+    const plate  = document.getElementById('plate-in').value.trim();
+    const vtype  = document.getElementById('vehicle-type').value;
+    const zone   = document.getElementById('zone-select').value;
+    let   slotId = document.getElementById('slot-select').value;
+
+    if (!plate) {
+      showToast('Masukkan nomor plat kendaraan!', 'error');
+      return;
+    }
+
+    // Cek apakah kendaraan sudah ada di dalam
+    if (allSlots().find(s => s.plate === plate && s.type === 'occupied')) {
+      showToast('Kendaraan sudah tercatat di area parkir!', 'error');
+      return;
+    }
+
+    // Auto-assign slot jika tidak dipilih
+    if (!slotId) {
+      const avail = zones[zone].slots.find(s => s.type === 'available');
+      if (!avail) {
+        showToast(`Zona ${zone} penuh! Pilih zona lain.`, 'error');
+        return;
+      }
+      slotId = avail.id;
+    }
+
+    const slot = getSlot(slotId);
+    if (!slot || slot.type !== 'available') {
+      showToast('Slot tidak tersedia, coba yang lain.', 'error');
+      return;
+    }
+
+    // Update slot
+    slot.type        = 'occupied';
+    slot.plate       = plate;
+    slot.vehicleType = vtype;
+    slot.checkinTime = new Date();
+
+    // Tambah ke history
+    totalCheckin++;
+    history.unshift({
+      plate, vtype, slotId,
+      checkin:  new Date(),
+      checkout: null,
+      duration: null,
+      fee:      null,
+    });
+
+    // Reset form
+    document.getElementById('plate-in').value = '';
+    document.getElementById('slot-select').value = '';
+    updateSlotOptions();
+
+    updateHeader();
+    renderMap();
+    renderOccupied();
+    showToast(`✓ ${plate} masuk ke slot ${slotId}`, 'success');
+  }
+
+  /* ======================================================
+     CHECK-OUT — CARI KENDARAAN
+  ====================================================== */
+  function searchVehicle() {
+    const plate  = document.getElementById('plate-out').value.trim();
+    const result = document.getElementById('checkout-result');
+
+    if (!plate) { result.innerHTML = ''; return; }
+
+    const slot = allSlots().find(s => s.plate === plate && s.type === 'occupied');
+
+    if (!slot) {
+      result.innerHTML = `
+        <div style="font-size:13px; color:var(--text-secondary); padding:14px;
+                    background:var(--bg-secondary); border-radius:var(--radius-md)">
+          Kendaraan <strong>${plate}</strong> tidak ditemukan di area parkir.
+        </div>`;
+      return;
+    }
+
+    const now = new Date();
+    const ms  = now - slot.checkinTime;
+    const fee = calcFee(ms, slot.vehicleType);
+
+    result.innerHTML = `
+      <div class="slot-card">
+        <div class="slot-card-header">
+          <div class="slot-card-id">${slot.id}</div>
+          <div class="slot-card-plate">${slot.plate}</div>
+        </div>
+        <div class="slot-card-info">
+          <span>${TARIFF_LABEL[slot.vehicleType]}</span>
+          <span>Masuk: ${fmtTime(slot.checkinTime)}</span>
+          <span class="fee">${fmtRp(fee)}</span>
+        </div>
+        <button class="btn-primary red" style="margin-top:10px"
+                onclick="doCheckout('${slot.id}')">
+          Checkout &amp; Bayar ${fmtRp(fee)}
+        </button>
+      </div>`;
+  }
+
+  /* ======================================================
+     CHECK-OUT — PROSES
+  ====================================================== */
+  function doCheckout(slotId) {
+    const slot = getSlot(slotId);
+    if (!slot) return;
+
+    const now = new Date();
+    const ms  = now - slot.checkinTime;
+    const fee = calcFee(ms, slot.vehicleType);
+
+    // Update history
+    const rec = history.find(h => h.plate === slot.plate && !h.checkout);
+    if (rec) {
+      rec.checkout = now;
+      rec.duration = ms;
+      rec.fee      = fee;
+    }
+
+    totalRevenue  += fee;
+    totalCheckout++;
+
+    // Data untuk struk
+    const receiptData = {
+      plate:   slot.plate,
+      vtype:   slot.vehicleType,
+      slotId,
+      checkin: slot.checkinTime,
+      checkout: now,
+      duration: ms,
+      fee,
+    };
+
+    // Bebaskan slot
+    slot.type        = 'available';
+    slot.plate       = null;
+    slot.vehicleType = null;
+    slot.checkinTime = null;
+
+    // Reset form checkout
+    document.getElementById('plate-out').value  = '';
+    document.getElementById('checkout-result').innerHTML = '';
+    updateSlotOptions();
+
+    showReceipt(receiptData);
+    updateHeader();
+    renderMap();
+    renderOccupied();
+  }
+
+  /* ======================================================
+     STRUK PARKIR
+  ====================================================== */
+  function showReceipt(data) {
+    document.getElementById('receipt-box').innerHTML = `
+      <div class="receipt-title">🧾 Struk Parkir</div>
+      <div class="receipt-row">
+        <span class="receipt-key">Plat Nomor</span>
+        <span class="receipt-val">${data.plate}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Slot</span>
+        <span class="receipt-val">${data.slotId}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Jenis</span>
+        <span class="receipt-val">${TARIFF_LABEL[data.vtype]}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Waktu Masuk</span>
+        <span class="receipt-val">${fmtDate(data.checkin)} ${fmtTime(data.checkin)}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Waktu Keluar</span>
+        <span class="receipt-val">${fmtDate(data.checkout)} ${fmtTime(data.checkout)}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Durasi</span>
+        <span class="receipt-val">${fmtDuration(data.duration)}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Tarif/jam</span>
+        <span class="receipt-val">${fmtRp(TARIFF[data.vtype])}</span>
+      </div>
+      <div class="receipt-row" style="border-bottom:none; padding-top:14px">
+        <span class="receipt-key" style="font-weight:700; color:var(--text-primary)">Total Bayar</span>
+        <span class="receipt-val receipt-total">${fmtRp(data.fee)}</span>
+      </div>
+      <div class="receipt-btns">
+        <button class="btn-ghost" onclick="closeReceipt()">Tutup</button>
+        <button class="btn-primary" onclick="closeReceipt()">✓ Selesai</button>
+      </div>`;
+
+    document.getElementById('receipt-overlay').classList.add('show');
+  }
+
+  function closeReceipt() {
+    document.getElementById('receipt-overlay').classList.remove('show');
+  }
+
+  /* ======================================================
+     RENDER PETA PARKIR
+  ====================================================== */
+  function renderMap() {
+    const container = document.getElementById('zones-container');
+    container.innerHTML = '';
+
+    Object.entries(zones).forEach(([key, zone]) => {
+      const total = zone.slots.length;
+      const avail = zone.slots.filter(s => s.type === 'available').length;
+      const occ   = zone.slots.filter(s => s.type === 'occupied').length;
+      const pct   = Math.round((occ / total) * 100);
+      const fillColor = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#10b981';
+
+      const area = document.createElement('div');
+      area.className = 'parking-area';
+      area.innerHTML = `
+        <div class="zone-header">
+          <div class="zone-name">${zone.name}</div>
+          <div class="zone-count">${avail} tersedia / ${total} slot</div>
+        </div>
+        <div class="occupancy-row">
+          <div class="occ-labels">
+            <span>Tingkat Hunian</span><span>${pct}%</span>
+          </div>
+          <div class="occupancy-bar">
+            <div class="occupancy-fill" style="width:${pct}%; background:${fillColor}"></div>
+          </div>
+        </div>
+        <div class="parking-grid" style="grid-template-columns:repeat(${zone.cols}, 1fr)"
+             id="grid-${key}"></div>
+        <div class="road-label">— Jalur Kendaraan —</div>`;
+
+      container.appendChild(area);
+
+      const grid = area.querySelector(`#grid-${key}`);
+      zone.slots.forEach(slot => {
+        const el = document.createElement('div');
+        el.className = `parking-slot ${slot.type}`;
+        el.title     = slot.id + (slot.plate ? ` — ${slot.plate}` : '');
+
+        const iconMap = {
+          available: '🟢',
+          occupied:  '🚗',
+          reserved:  '🔒',
+          disabled:  '♿',
+        };
+
+        el.innerHTML = `
+          <div class="slot-icon">${iconMap[slot.type] || '⬜'}</div>
+          <div class="slot-id">${slot.id}</div>
+          ${slot.plate ? `<div class="slot-plate">${slot.plate}</div>` : ''}`;
+
+        el.onclick = () => onSlotClick(slot);
+        grid.appendChild(el);
+      });
+    });
+  }
+
+  /* ======================================================
+     KLIK SLOT DI PETA
+  ====================================================== */
+  function onSlotClick(slot) {
+    if (slot.type === 'occupied') {
+      document.getElementById('plate-out').value = slot.plate;
+      setSideTab('checkout');
+      searchVehicle();
+    } else if (slot.type === 'available') {
+      document.getElementById('zone-select').value = slot.id[0];
+      updateSlotOptions();
+      document.getElementById('slot-select').value = slot.id;
+      setSideTab('checkin');
+    }
+  }
+
+  /* ======================================================
+     RENDER DAFTAR KENDARAAN AKTIF
+  ====================================================== */
+  function renderOccupied() {
+    const list    = document.getElementById('occupied-list');
+    const occupied = allSlots().filter(s => s.type === 'occupied');
+    document.getElementById('occ-count').textContent = occupied.length;
+
+    if (!occupied.length) {
+      list.innerHTML = '<div class="no-slots">Belum ada kendaraan di area parkir</div>';
+      return;
+    }
+
+    const now = new Date();
+    list.innerHTML = occupied.map(s => {
+      const ms  = now - s.checkinTime;
+      const fee = calcFee(ms, s.vehicleType);
+      return `
+        <div class="slot-card" onclick="onSlotClick(getSlot('${s.id}'))">
+          <div class="slot-card-header">
+            <div class="slot-card-id">${s.id}</div>
+            <div class="slot-card-plate">${s.plate}</div>
+          </div>
+          <div class="slot-card-info">
+            <span>${TARIFF_LABEL[s.vehicleType]}</span>
+            <span>Masuk: ${fmtTime(s.checkinTime)}</span>
+            <span class="fee">${fmtRp(fee)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  /* ======================================================
+     UPDATE HEADER STATS
+  ====================================================== */
+  function updateHeader() {
+    const all      = allSlots();
+    const available = all.filter(s => s.type === 'available').length;
+    const occupied  = all.filter(s => s.type === 'occupied').length;
+    document.getElementById('h-available').textContent = available;
+    document.getElementById('h-occupied').textContent  = occupied;
+    document.getElementById('h-revenue').textContent   = fmtRp(totalRevenue);
+  }
+
+  /* ======================================================
+     RENDER STATISTIK
+  ====================================================== */
+  function renderStats() {
+    document.getElementById('m-checkin').textContent  = totalCheckin;
+    document.getElementById('m-checkout').textContent = totalCheckout;
+    document.getElementById('m-revenue').textContent  = fmtRp(totalRevenue);
+
+    const zc = document.getElementById('zone-stats');
+    zc.innerHTML = Object.entries(zones).map(([key, z]) => {
+      const total = z.slots.length;
+      const occ   = z.slots.filter(s => s.type === 'occupied').length;
+      const pct   = Math.round((occ / total) * 100);
+      const color = pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#10b981';
+      return `
+        <div style="margin-top:14px">
+          <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px">
+            <span style="font-weight:600">${z.name}</span>
+            <span style="color:var(--text-secondary)">${occ}/${total} terisi — ${pct}%</span>
+          </div>
+          <div class="occupancy-bar">
+            <div class="occupancy-fill" style="width:${pct}%; background:${color}"></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  /* ======================================================
+     RENDER RIWAYAT TRANSAKSI
+  ====================================================== */
+  function renderHistory() {
+    const tbody = document.getElementById('history-body');
+
+    if (!history.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8"
+              style="text-align:center; color:var(--text-secondary); padding:28px">
+            Belum ada riwayat transaksi
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = history.slice(0, 100).map(h => `
+      <tr>
+        <td>
+          <span style="font-family:var(--font-mono); font-size:11px; font-weight:700">
+            ${h.plate}
+          </span>
+        </td>
+        <td>${TARIFF_LABEL[h.vtype]}</td>
+        <td>
+          <span style="font-family:var(--font-mono); font-size:11px">${h.slotId}</span>
+        </td>
+        <td style="font-size:11px; color:var(--text-secondary)">
+          ${fmtDate(h.checkin)} ${fmtTime(h.checkin)}
+        </td>
+        <td style="font-size:11px; color:var(--text-secondary)">
+          ${h.checkout ? `${fmtDate(h.checkout)} ${fmtTime(h.checkout)}` : '—'}
+        </td>
+        <td style="font-size:11px">
+          ${h.duration ? fmtDuration(h.duration) : '—'}
+        </td>
+        <td style="font-family:var(--font-mono); font-size:11px;
+                   color:${h.fee ? '#059669' : 'var(--text-secondary)'}">
+          ${h.fee ? fmtRp(h.fee) : '—'}
+        </td>
+        <td>
+          <span class="badge ${h.checkout ? 'out' : 'in'}">
+            ${h.checkout ? 'Keluar' : 'Di Dalam'}
+          </span>
+        </td>
+      </tr>`).join('');
+  }
+
+  /* ======================================================
+     CLOCK & LIVE UPDATE
+  ====================================================== */
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('id-ID');
+    renderOccupied(); // refresh biaya berjalan tiap detik
+  }
+
+  /* ======================================================
+     INISIALISASI
+  ====================================================== */
+  updateSlotOptions();
+  renderMap();
+  updateHeader();
+  renderOccupied();
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
